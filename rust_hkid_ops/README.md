@@ -3,6 +3,7 @@
 A Rust library for generating and validating Hong Kong Identity Card (HKID) numbers, supporting all official and custom prefixes, with correct check digit calculation.
 
 [![Rust](https://img.shields.io/badge/Rust-1.70%2B-blue.svg)](https://www.rust-lang.org/)
+[![Crates.io](https://img.shields.io/crates/v/hkid_ops.svg)](https://crates.io/crates/hkid_ops)
 
 ## References
 
