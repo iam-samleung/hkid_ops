@@ -41,7 +41,7 @@ hkid_ops = "0.1"
 ## Usage
 
 ```rust
-use hkid_ops::{generate_hkid, validate_hkid};
+use hkid_ops::{hkid_generator::generate_hkid, hkid_validator::validate_hkid};
 
 fn main() {
     // Generate a random HKID with a known prefix
