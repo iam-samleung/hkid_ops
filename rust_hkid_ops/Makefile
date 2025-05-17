@@ -12,3 +12,6 @@ code-format:
 
 publish-dry-run:
 	@ cargo publish --dry-run
+
+publish:
+	@ cargo publish
