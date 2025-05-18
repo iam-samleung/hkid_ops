@@ -3,6 +3,12 @@ name: Cargo build
 on:
   push:
     branches: [ master ]
+    paths:
+      - "rust_hkid_ops/**"
+  pull_request:
+    branches: [ master ]
+    paths:
+      - "rust_hkid_ops/**"
 
 jobs:
   build:
