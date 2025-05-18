@@ -11,48 +11,55 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: dtolnay/rust-toolchain@stable
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
           components: clippy, llvm-tools-preview
 
       - name: Test
+        working-directory: rust_hkid_ops
         run: cargo test --tests
 
       - name: Build docs
+        working-directory: rust_hkid_ops
         run: cargo doc --no-deps
 
       - name: Install deadlinks and cargo-llvm-cov
+        working-directory: rust_hkid_ops
         run: |
           cargo install cargo-deadlinks cargo-llvm-cov
 
       - name: Check for broken links in docs
+        working-directory: rust_hkid_ops
         run: cargo deadlinks --check-http
 
       - name: Run clippy pedantic
+        working-directory: rust_hkid_ops
         run: ./bin/clippy-pedantic.sh
 
       - name: Benchmark build (dev profile)
+        working-directory: rust_hkid_ops
         run: cargo bench --no-run --profile dev
 
       - name: Clean before coverage
+        working-directory: rust_hkid_ops
         run: cargo clean
 
       - name: Run coverage (HTML + LCOV)
-        run: |
-          ./bin/coverage-report.sh
+        working-directory: rust_hkid_ops
+        run: ./bin/coverage-report.sh
 
       - name: Upload coverage report to Codecov
         uses: codecov/codecov-action@v5
         with:
-          files: coverage
+          files: rust_hkid_ops/coverage/lcov.info
           fail_ci_if_error: true
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
-      # (Optional) Upload HTML report as a GitHub Actions artifact
       - name: Upload HTML coverage as artifact
         uses: actions/upload-artifact@v4
         with:
           name: coverage-html
-          path: coverage/
+          path: rust_hkid_ops/coverage/
