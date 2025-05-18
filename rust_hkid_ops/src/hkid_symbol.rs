@@ -141,6 +141,10 @@ impl HKIDSymbol {
     /// # Returns
     /// An appropriate `HKIDSymbol` variant.
     ///
+    /// # Panics
+    /// This function will panic if a two-character symbol string does not have at least two Unicode scalar values.
+    /// (Under expected usage, this should never occur, because `s.len() == 2` is checked before `.chars().nth(1).unwrap()` is called.)
+    ///
     /// # Example
     /// ```ignore
     /// use hkid_ops::HKIDSymbol;
@@ -172,7 +176,7 @@ impl HKIDSymbol {
                     HKIDSymbol::Unknown(s.to_string())
                 }
             }
-            s if s.len() == 2 && s.chars().nth(1).unwrap().is_digit(10) => {
+            s if s.len() == 2 && s.chars().nth(1).unwrap().is_ascii_digit() => {
                 HKIDSymbol::IssuingOfficeCode(s.to_string())
             }
             _ => HKIDSymbol::Unknown(symbol.to_string()),

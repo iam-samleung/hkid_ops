@@ -67,20 +67,21 @@ pub fn generate_hkid(
         Some(px) => {
             let parsed_prefix = HKIDPrefix::parse(px);
             if must_exist_in_enum && !parsed_prefix.is_known() {
-                return Err(format!("Prefix '{}' is not recognized", px));
+                return Err(format!("Prefix '{px}' is not recognized"));
             }
             parsed_prefix.as_str()
         }
         None => {
             if must_exist_in_enum {
                 let valid_prefixes: Vec<String> = HKIDPrefix::iter()
-                    .filter(|variant| variant.is_known())
+                    .filter(HKIDPrefix::is_known)
                     .map(|variant| variant.as_str())
                     .collect();
+
                 valid_prefixes
                     .choose(&mut rng)
-                    .expect("No valid prefixes in HKIDPrefix enum")
-                    .clone()
+                    .cloned() // Use cloned() for Option<&String> to Option<String>
+                    .ok_or_else(|| "No valid prefixes in HKIDPrefix enum".to_string())?
             } else {
                 // Generate a random one- or two-letter uppercase prefix
                 if rng.random_range(0..2) == 0 {
@@ -91,7 +92,7 @@ pub fn generate_hkid(
                     // Two-letter prefix
                     let letter1 = rng.random_range(b'A'..=b'Z') as char;
                     let letter2 = rng.random_range(b'A'..=b'Z') as char;
-                    format!("{}{}", letter1, letter2)
+                    format!("{letter1}{letter2}")
                 }
             }
         }
@@ -107,7 +108,7 @@ pub fn generate_hkid(
 
     let check_digit = calculate_check_digit(&hkid_body);
 
-    Ok(format!("{}({})", hkid_body, check_digit))
+    Ok(format!("{hkid_body}({check_digit})"))
 }
 
 #[cfg(test)]

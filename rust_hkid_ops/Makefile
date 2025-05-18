@@ -15,3 +15,6 @@ publish-dry-run:
 
 publish:
 	@ cargo publish
+
+generate-report:
+	@ ./bin/coverage-report.sh --open

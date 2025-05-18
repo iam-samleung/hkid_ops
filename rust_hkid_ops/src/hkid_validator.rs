@@ -15,6 +15,10 @@ use crate::{hkid_check_digit::calculate_check_digit, hkid_prefix::HKIDPrefix};
 /// - Returns `Err` if the HKID length is not 8 or 9 characters after removing parentheses.
 /// - Returns `Err` if the prefix is not recognized and `must_exist_in_enum` is set to `true`.
 ///
+/// # Panics
+/// Panics if the provided HKID string is malformed such that the check digit part is empty,
+/// which should never occur if the HKID is correctly formatted and passes length checks.
+///
 /// # Examples
 /// ```ignore
 /// // Valid HKID, known prefix, must_exist_in_enum = true
@@ -64,7 +68,7 @@ pub fn validate_hkid(hkid_full: &str, must_exist_in_enum: bool) -> Result<bool, 
     if must_exist_in_enum {
         let parsed_prefix = HKIDPrefix::parse(prefix);
         if !parsed_prefix.is_known() {
-            return Err(format!("Prefix '{}' is not recognized.", prefix));
+            return Err(format!("Prefix '{prefix}' is not recognized."));
         }
     }
 

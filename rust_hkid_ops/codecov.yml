@@ -1,0 +1,42 @@
+coverage:
+  status:
+    project:
+      default:
+        # Require at least 80% overall project coverage to pass
+        target: 80%
+        threshold: 1%   # Allow small changes
+    patch:
+      default:
+        # Require at least 80% coverage on new/changed code
+        target: 80%
+        threshold: 1%
+  precision: 2   # Show coverage % with 2 decimal places
+
+comment:
+  layout: "reach, diff, files, flags, footer"
+  behavior: default
+  require_changes: false
+
+ignore:
+  - "tests/*"
+  - "examples/*"
+  - "benches/*"
+  - "target/*"
+
+# Optional: Flags for monorepos or multi-crate workspaces
+# flags:
+#   hkid-core:
+#     paths:
+#       - crates/hkid-core/
+#   hkid-cli:
+#     paths:
+#       - crates/hkid-cli/
+
+# You can also configure other features:
+# # Disable Codecov PR comments
+# comment: false
+
+# # Notify on Slack (if integrated)
+# notify:
+#   slack:
+#     url: ${{ secrets.SLACK_WEBHOOK }}

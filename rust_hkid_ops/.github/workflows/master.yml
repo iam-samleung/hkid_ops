@@ -1,0 +1,58 @@
+name: Cargo build
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          components: clippy, llvm-tools-preview
+
+      - name: Test
+        run: cargo test --tests
+
+      - name: Build docs
+        run: cargo doc --no-deps
+
+      - name: Install deadlinks and cargo-llvm-cov
+        run: |
+          cargo install cargo-deadlinks cargo-llvm-cov
+
+      - name: Check for broken links in docs
+        run: cargo deadlinks --check-http
+
+      - name: Run clippy pedantic
+        run: ./bin/clippy-pedantic.sh
+
+      - name: Benchmark build (dev profile)
+        run: cargo bench --no-run --profile dev
+
+      - name: Clean before coverage
+        run: cargo clean
+
+      - name: Run coverage (HTML + LCOV)
+        run: |
+          ./bin/coverage-report.sh
+
+      - name: Upload coverage report to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: coverage
+          fail_ci_if_error: true
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+      # (Optional) Upload HTML report as a GitHub Actions artifact
+      - name: Upload HTML coverage as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-html
+          path: coverage/

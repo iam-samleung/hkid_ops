@@ -21,7 +21,7 @@ use crate::WEIGHTS;
 /// assert_eq!(char_to_value(' '), 36);
 /// assert_eq!(char_to_value('-'), 0);
 /// ```
-fn char_to_value(c: char) -> u32 {
+pub fn char_to_value(c: char) -> u32 {
     let c = c.to_ascii_uppercase();
 
     match c {
@@ -52,6 +52,10 @@ fn char_to_value(c: char) -> u32 {
 /// # Returns
 /// * The check digit as a `char` (`'0'`–`'9'` or `'A'`).
 ///
+/// # Panics
+/// Panics if the computed digit is not in the range 0–10.
+/// This should never occur if the input `hkid_body` is valid and the algorithm is correct.
+///
 /// # Examples
 /// ```ignore
 /// use hkid_ops::utils::{calculate_check_digit};
@@ -61,7 +65,7 @@ fn char_to_value(c: char) -> u32 {
 /// ```
 pub fn calculate_check_digit(hkid_body: &str) -> char {
     let padded_body = if hkid_body.len() == 7 {
-        format!(" {}", hkid_body)
+        format!(" {hkid_body}", )
     } else {
         hkid_body.to_string()
     };
@@ -69,8 +73,9 @@ pub fn calculate_check_digit(hkid_body: &str) -> char {
     let values: Vec<u32> = padded_body.chars().map(char_to_value).collect();
 
     let sum: u32 = values.iter().zip(WEIGHTS.iter()).map(|(v, w)| v * w).sum();
+    let digit = (11 - sum % 11) % 11;
 
-    match (11 - sum % 11) % 11 {
+    match digit {
         10 => 'A',
         digit => char::from_digit(digit, 10).unwrap(),
     }

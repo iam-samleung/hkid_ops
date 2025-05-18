@@ -1,4 +1,4 @@
-//! # hkid_ops Usage Examples
+//! # `hkid_ops` Usage Examples
 //!
 //! This section demonstrates common usage patterns for the `hkid_ops` library, including symbol and prefix parsing, HKID generation, and validation.
 //!

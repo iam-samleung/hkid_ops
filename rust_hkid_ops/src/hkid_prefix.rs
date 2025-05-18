@@ -141,7 +141,7 @@ pub enum HKIDPrefix {
 }
 
 impl HKIDPrefix {
-    /// Parses a prefix string into the corresponding HKIDPrefix enum variant.
+    /// Parses a prefix string into the corresponding `HKIDPrefix` enum variant.
     pub fn parse(prefix: &str) -> HKIDPrefix {
         match prefix {
             "A" => HKIDPrefix::A,
@@ -234,7 +234,7 @@ impl HKIDPrefix {
     pub fn as_str(&self) -> String {
         match self {
             HKIDPrefix::Unknown(s) => s.clone(),
-            _ => format!("{:?}", self),
+            _ => format!("{self:?}"),
         }
     }
 
