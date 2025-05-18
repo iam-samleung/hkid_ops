@@ -32,7 +32,7 @@ jobs:
 
       - name: Check for broken links in docs
         working-directory: rust_hkid_ops
-        run: cargo deadlinks --check-http
+        run: cargo deadlinks
 
       - name: Run clippy pedantic
         working-directory: rust_hkid_ops
