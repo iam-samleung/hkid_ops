@@ -5,6 +5,30 @@ use strum::IntoEnumIterator;
 
 use crate::{hkid_check_digit::calculate_check_digit, hkid_prefix::HKIDPrefix};
 
+/// Generates a random uppercase ASCII letter ('A' to 'Z').
+///
+/// # Arguments
+///
+/// * `rng` - A mutable reference to a random number generator that implements the `Rng` trait.
+///
+/// # Returns
+///
+/// A randomly selected uppercase letter as a `char`.
+///
+/// # Example
+///
+/// ```ignore
+/// use rand::thread_rng;
+/// use hkid_ops::random_uppercase_letter;
+///
+/// let mut rng = thread_rng();
+/// let letter = random_uppercase_letter(&mut rng);
+/// assert!(letter.is_ascii_uppercase());
+/// ```
+fn random_uppercase_letter<R: Rng + ?Sized>(rng: &mut R) -> char {
+    rng.random_range(b'A'..=b'Z') as char
+}
+
 /// Generates a random Hong Kong Identity Card (HKID) number with the specified or random prefix.
 ///
 /// This function creates a validly-formatted HKID string by:
@@ -83,16 +107,16 @@ pub fn generate_hkid(
                     .cloned() // Use cloned() for Option<&String> to Option<String>
                     .ok_or_else(|| "No valid prefixes in HKIDPrefix enum".to_string())?
             } else {
-                // Generate a random one- or two-letter uppercase prefix
+                // Generate a random one or two letter uppercase prefix
                 if rng.random_range(0..2) == 0 {
                     // One-letter prefix
-                    let letter = rng.random_range(b'A'..=b'Z') as char;
-                    letter.to_string()
+                    random_uppercase_letter(&mut rng).to_string()
                 } else {
                     // Two-letter prefix
-                    let letter1 = rng.random_range(b'A'..=b'Z') as char;
-                    let letter2 = rng.random_range(b'A'..=b'Z') as char;
-                    format!("{letter1}{letter2}")
+                    let prefix: String = (0..2)
+                        .map(|_| random_uppercase_letter(&mut rng))
+                        .collect();
+                    prefix
                 }
             }
         }
@@ -113,7 +137,23 @@ pub fn generate_hkid(
 
 #[cfg(test)]
 mod tests {
-    use super::generate_hkid;
+    use rand::{rng};
+    use super::{generate_hkid, random_uppercase_letter};
+
+    #[test]
+    fn test_random_uppercase_letter() {
+        let mut rng = rng();
+        // Run the function multiple times to check its range and type
+        for _ in 0..100 {
+            let c = random_uppercase_letter(&mut rng);
+
+            assert!(
+                c.is_ascii_uppercase(),
+                "Generated character '{}' is not an ASCII uppercase letter",
+                c
+            );
+        }
+    }
 
     // Helper to check HKID format: PREFIX + 6 digits + (check digit)
     fn is_valid_format(hkid: &str) -> bool {
