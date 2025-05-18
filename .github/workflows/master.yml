@@ -17,6 +17,9 @@ jobs:
           toolchain: stable
           components: clippy, llvm-tools-preview
 
+      - name: Make sure llvm-tools are in PATH
+        run: echo "${HOME}/.rustup/toolchains/$(rustup show active-toolchain | cut -d' ' -f1)/lib/rustlib/x86_64-unknown-linux-gnu/bin" >> $GITHUB_PATH
+
       - name: Test
         working-directory: rust_hkid_ops
         run: cargo test --tests
