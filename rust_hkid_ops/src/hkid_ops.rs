@@ -375,7 +375,7 @@ impl HKIDOps {
         }
 
         let prefix_str = match (prefix, must_exist_in_enum) {
-            (Some(px), true) | (Some(px), false) => HKIDPrefix::parse(px).as_str(),
+            (Some(px), true | false) => HKIDPrefix::parse(px).as_str(),
             (None, true) => HKIDOps::random_known_prefix(&mut rng).ok_or_else(|| "No valid prefixes in HKIDPrefix enum".to_string())?,
             (None, false) => HKIDOps::random_prefix(&mut rng),
         };
