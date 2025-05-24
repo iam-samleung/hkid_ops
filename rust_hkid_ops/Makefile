@@ -16,5 +16,8 @@ publish-dry-run:
 publish:
 	@ cargo publish
 
+clippy-pedantic:
+	@ ./bin/clippy-pedantic.sh
+
 generate-report:
 	@ ./bin/coverage-report.sh --open

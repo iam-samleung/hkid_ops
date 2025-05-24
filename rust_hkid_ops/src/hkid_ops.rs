@@ -168,7 +168,7 @@ const HKID_FULL_PATTERN: &str = r"^([A-Z]{1,2})([0-9]{6})([A0-9])$";
 // Compiled regex for matching full HKID against its official structure.
 static HKID_FULL_REGEX: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| Regex::new(HKID_FULL_PATTERN).unwrap());
 
-/// HKIDOps provides the main implementation.
+/// `HKIDOps` provides the main implementation.
 pub struct HKIDOps;
 
 impl HKIDOps {
@@ -442,9 +442,9 @@ impl HKIDOps {
         let caps = HKID_FULL_REGEX.captures(&cleaned)
             .ok_or_else(|| "Invalid HKID format: incorrect structure.".to_string())?;
 
-        let prefix = caps.get(1).unwrap().as_str();
-        let digits = caps.get(2).unwrap().as_str();
-        let provided_digit = caps.get(3).unwrap().as_str();
+        let prefix = caps.get(1).ok_or("Missing prefix in HKID")?.as_str();
+        let digits = caps.get(2).ok_or("Missing digits in HKID")?.as_str();
+        let provided_digit = caps.get(3).ok_or("Missing check digit in HKID")?.as_str();
 
         if must_exist_in_enum {
             let parsed_prefix = HKIDPrefix::parse(prefix);

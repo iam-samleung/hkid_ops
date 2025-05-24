@@ -1,4 +1,4 @@
-//! # hkid_ops — HKID Toolkit
+//! # `hkid_ops` — HKID Toolkit
 //!
 //! This crate provides parsing, generation, and validation utilities for Hong Kong Identity Cards (HKID).
 //!
