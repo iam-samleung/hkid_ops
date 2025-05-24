@@ -291,17 +291,12 @@ impl HKIDOps {
         if !VALID_HKID_BODY_REGEX.is_match(hkid_body) {
             return None;
         }
+
         let padded_body = format!("{hkid_body:>8}");
-        let values = padded_body
-            .chars()
-            .map(HKIDOps::char_to_value)
-            .collect::<Option<Vec<u32>>>()?;
-        let sum = values
-            .iter()
-            .zip(WEIGHTS.iter())
-            .map(|(v, w)| v * w)
-            .sum::<u32>();
+        let values = padded_body.chars().map(HKIDOps::char_to_value).collect::<Option<Vec<u32>>>()?;
+        let sum = values.iter().zip(WEIGHTS.iter()).map(|(v, w)| v * w).sum::<u32>();
         let check_digit = (11 - sum % 11) % 11;
+
         match check_digit {
             10 => Some('A'),
             digit => char::from_digit(digit, 10),
@@ -381,7 +376,7 @@ impl HKIDOps {
 
         let prefix_str = match (prefix, must_exist_in_enum) {
             (Some(px), true) => HKIDPrefix::parse(px).as_str(),
-            (Some(px), false) => HKIDPrefix::parse(px).as_str().to_string(),
+            (Some(px), false) => HKIDPrefix::parse(px).as_str(),
             (None, true) => HKIDOps::random_known_prefix(&mut rng).ok_or_else(|| "No valid prefixes in HKIDPrefix enum".to_string())?,
             (None, false) => HKIDOps::random_prefix(&mut rng),
         };
