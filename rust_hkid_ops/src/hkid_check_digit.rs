@@ -68,7 +68,7 @@ pub fn calculate_check_digit(hkid_body: &str) -> Option<char> {
     }
 
     // Always pad to 8 characters, left-padding with space if needed
-    let padded_body = format!("{:>8}", hkid_body);
+    let padded_body = format!("{hkid_body:>8}");
     let values = padded_body.chars().map(char_to_value).collect::<Option<Vec<u32>>>()?;
     let sum = values.iter().zip(WEIGHTS.iter()).map(|(v, w)| v * w).sum::<u32>();
     let check_digit = (11 - sum % 11) % 11;

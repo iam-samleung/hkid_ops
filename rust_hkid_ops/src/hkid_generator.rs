@@ -168,7 +168,7 @@ pub fn generate_hkid(prefix: Option<&str>, must_exist_in_enum: bool) -> Result<S
     // Generate 6 random digits
     let digits = (0..6).map(|_| rng.random_range(0..10).to_string()).collect::<String>();
     let hkid_body = format!("{prefix_str}{digits}");
-    let check_digit = calculate_check_digit(&hkid_body).ok_or_else(|| "Failed to calculate check digit")?;
+    let check_digit = calculate_check_digit(&hkid_body).ok_or("Failed to calculate check digit")?;
 
     Ok(format!("{hkid_body}({check_digit})"))
 }
