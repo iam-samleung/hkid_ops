@@ -17,6 +17,11 @@ The implementation in this library is based on the following public resources:
 - **HKID Symbol and Prefix Descriptions**
   - [Hong Kong identity card - Wikipedia](https://en.wikipedia.org/wiki/Hong_Kong_identity_card)
 
+- **Mathematical Concepts Underlying Check Digit Algorithms: Weight Functions, ISBN Standards, and Modular Arithmetic**
+  - [Weight function - Wikipedia](https://en.wikipedia.org/wiki/Weight_function)
+  - [ISBN](https://en.wikipedia.org/wiki/ISBN)
+  - [Modular arithmetic](https://en.wikipedia.org/wiki/Modular_arithmetic)
+
 This ensures that the check digit calculation and the interpretation of HKID symbols and prefixes are consistent with established and publicly recognized standards.
 
 ---
