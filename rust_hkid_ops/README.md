@@ -44,26 +44,28 @@ hkid_ops = "0.1.4"
 ## Usage
 
 ```rust
-use hkid_ops::{hkid_generator::generate_hkid, hkid_validator::validate_hkid};
+use hkid_ops::hkid_ops::HKIDOps;
 
 fn main() {
-    // Generate a random HKID with a known prefix
-    let hkid = generate_hkid(None, true).unwrap();
-    println!("Random valid HKID: {}", hkid);
+  let hkid_ops = HKIDOps {};
 
-    // Generate with a specific prefix
-    let hkid_a = generate_hkid(Some("A"), true).unwrap();
-    println!("HKID with prefix A: {}", hkid_a);
+  // Generate a random HKID with a known prefix
+  let hkid = hkid_ops.generate_hkid(None, true).unwrap();
+  println!("Random valid HKID: {}", hkid);
 
-    // Generate with a custom (unknown) prefix
-    let hkid_custom = generate_hkid(Some("ZZ"), false).unwrap();
-    println!("HKID with custom prefix: {}", hkid_custom);
+  // Generate with a specific prefix
+  let hkid_a = hkid_ops.generate_hkid(Some("A"), true).unwrap();
+  println!("HKID with prefix A: {}", hkid_a);
 
-    // Validate an HKID
-    match validate_hkid(&hkid_a, true) {
-        Ok(valid) => println!("Is HKID valid? {}", valid),
-        Err(e) => println!("Validation error: {}", e),
-    }
+  // Generate with a custom (unknown) prefix
+  let hkid_custom = hkid_ops.generate_hkid(Some("ZZ"), false).unwrap();
+  println!("HKID with custom prefix: {}", hkid_custom);
+
+  // Validate an HKID
+  match hkid_ops.validate_hkid(&hkid_a, true) {
+    Ok(valid) => println!("Is HKID valid? {}", valid),
+    Err(e) => println!("Validation error: {}", e),
+  }
 }
 ```
 
