@@ -1,6 +1,6 @@
 [package]
 name = "hkid_ops"
-version = "0.1.4"
+version = "0.1.5"
 authors = ["sam.leung <iam@samleung.me>"]
 edition = "2021"
 description = "A Rust library for generating and validating Hong Kong Identity Card (HKID) numbers, supporting all official and custom prefixes, with correct check digit calculation."
