@@ -39,8 +39,8 @@ use strum_macros::{AsRefStr, EnumIter, EnumMessage, EnumProperty, EnumString};
 /// - `Unknown(String)`: Any unrecognized or custom prefix not covered by the above variants.
 ///
 /// # Example
-/// ```ignore
-/// use hkid_ops::utils::hkid_prefix::HKIDPrefix;
+/// ```
+/// use hkid_ops::hkid_prefix::HKIDPrefix;
 ///
 /// let prefix = HKIDPrefix::parse("A");
 /// assert_eq!(prefix, HKIDPrefix::A);
@@ -224,8 +224,8 @@ impl HKIDPrefix {
     ///
     /// # Examples
     ///
-    /// ```ignore
-    /// use hkid_ops::utils::hkid_prefix::HKIDPrefix;
+    /// ```rust
+    /// use hkid_ops::hkid_prefix::HKIDPrefix;
     ///
     /// assert_eq!(HKIDPrefix::A.as_str(), "A");
     /// assert_eq!(HKIDPrefix::Unknown("ZZ".to_string()).as_str(), "ZZ");
@@ -244,8 +244,8 @@ impl HKIDPrefix {
     ///
     /// # Examples
     ///
-    /// ```ignore
-    /// use hkid_ops::utils::hkid_prefix::HKIDPrefix;
+    /// ```rust
+    /// use hkid_ops::hkid_prefix::HKIDPrefix;
     ///
     /// assert!(HKIDPrefix::A.is_known());
     /// assert!(!HKIDPrefix::Unknown("ZZ".to_string()).is_known());
@@ -407,5 +407,76 @@ mod tests {
         assert!(HKIDPrefix::A.is_known());
         assert!(HKIDPrefix::WX.is_known());
         assert!(!HKIDPrefix::Unknown("BAR".to_string()).is_known());
+    }
+
+    #[test]
+    fn test_to_str_all_variants() {
+        use strum::IntoEnumIterator;
+        // All known variants
+        for prefix in HKIDPrefix::iter() {
+            // to_str is deprecated, so allow deprecated here
+            #[allow(deprecated)]
+            {
+                let s = prefix.to_str();
+                // For known, s should equal Debug representation
+                if let HKIDPrefix::Unknown(ref unk) = prefix {
+                    assert_eq!(s, unk);
+                } else {
+                    assert_eq!(s, &format!("{prefix:?}"));
+                }
+            }
+        }
+        // Unknown
+        let unknown = HKIDPrefix::Unknown("ZZ".to_string());
+        #[allow(deprecated)]
+        {
+            assert_eq!(unknown.to_str(), "ZZ");
+        }
+    }
+
+    #[test]
+    fn test_parse_empty_string_and_lower() {
+        let empty = HKIDPrefix::parse("");
+
+        match empty {
+            HKIDPrefix::Unknown(ref s) => assert_eq!(s, ""),
+            _ => panic!("Expected Unknown"),
+        }
+
+        let lower = HKIDPrefix::parse("a");
+
+        match lower {
+            HKIDPrefix::Unknown(ref s) => assert_eq!(s, "a"),
+            _ => panic!("Expected Unknown"),
+        }
+
+        let non_ascii = HKIDPrefix::parse("Ω");
+
+        match non_ascii {
+            HKIDPrefix::Unknown(ref s) => assert_eq!(s, "Ω"),
+            _ => panic!("Expected Unknown"),
+        }
+    }
+
+    #[test]
+    fn test_as_str_and_is_known_all_variants() {
+        use strum::IntoEnumIterator;
+
+        for prefix in HKIDPrefix::iter() {
+            let s = prefix.as_str();
+
+            if let HKIDPrefix::Unknown(ref unk) = prefix {
+                assert_eq!(s, unk.as_str());
+                assert!(!prefix.is_known());
+            } else {
+                assert_eq!(s, format!("{:?}", prefix));
+                assert!(prefix.is_known());
+            }
+        }
+
+        let unknown = HKIDPrefix::Unknown("BAR".to_string());
+
+        assert_eq!(unknown.as_str(), "BAR");
+        assert!(!unknown.is_known());
     }
 }

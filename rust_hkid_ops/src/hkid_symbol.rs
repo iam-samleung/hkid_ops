@@ -24,8 +24,8 @@ use strum_macros::{EnumMessage, EnumProperty};
 /// - `Unknown(String)`: Any unrecognized or custom symbol.
 ///
 /// # Example
-/// ```ignore
-/// use hkid_ops::HKIDSymbol;
+/// ```
+/// use hkid_ops::hkid_symbol::HKIDSymbol;
 ///
 /// assert_eq!(HKIDSymbol::parse("***"), HKIDSymbol::AdultEligibleReentryPermit);
 /// assert_eq!(HKIDSymbol::parse("A"), HKIDSymbol::RightOfAbode);
@@ -146,8 +146,8 @@ impl HKIDSymbol {
     /// (Under expected usage, this should never occur, because `s.len() == 2` is checked before `.chars().nth(1).unwrap()` is called.)
     ///
     /// # Example
-    /// ```ignore
-    /// use hkid_ops::HKIDSymbol;
+    /// ```
+    /// use hkid_ops::hkid_symbol::HKIDSymbol;
     ///
     /// assert_eq!(HKIDSymbol::parse("*"), HKIDSymbol::YouthEligibleReentryPermit);
     /// assert_eq!(HKIDSymbol::parse("L5"), HKIDSymbol::LostCard(5));

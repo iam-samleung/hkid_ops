@@ -1,50 +1,69 @@
-//! # `hkid_ops` Usage Examples
+//! # hkid_ops — HKID Toolkit
 //!
-//! This section demonstrates common usage patterns for the `hkid_ops` library, including symbol and prefix parsing, HKID generation, and validation.
+//! This crate provides parsing, generation, and validation utilities for Hong Kong Identity Cards (HKID).
+//!
+//! ## HKID Check Digit Algorithm
+//!
+//! The HKID check digit is calculated using a weighted sum of the HKID body (prefix + 6 digits).
+//! Each character is mapped to a numeric value (`A=10`, ..., `Z=35`, `0=0`, ..., `9=9`, space=`36`), then multiplied by a weight.
+//!
+//! The weights are defined in [`WEIGHTS`](crate::WEIGHTS):
+//!
+//! ```rust
+//! pub const WEIGHTS: [u32; 8] = [9, 8, 7, 6, 5, 4, 3, 2];
+//! ```
+//!
+//! - If the HKID body is 7 characters, it is left-padded with a space.
+//! - Each character's value is multiplied by the corresponding weight.
+//! - Add up the products, then compute the check digit as `(11 - (sum % 11)) % 11`.
+//! - If the result is 10, the check digit is `'A'`; otherwise, it's the digit itself.
 //!
 //! ---
 //!
-//! ## 1. HKID Symbol Parsing
+//! ## Usage Examples
 //!
-//! ```ignore
-//! use hkid_ops::HKIDSymbol;
+//! ### 1. HKID Symbol Parsing
+//!
+//! ```rust
+//! use hkid_ops::hkid_symbol::HKIDSymbol;
 //!
 //! let symbols = [
 //!     "***", "*", "A", "B", "C", "N", "O", "R", "U", "W", "X", "Y", "Z", "H1", "L2", "Unknown"
 //! ];
-//! for (i, sym) in symbols.iter().enumerate() {
+//! for sym in symbols.iter() {
 //!     let parsed = HKIDSymbol::parse(sym);
-//!     println!("[{}] Input: {:?} => Parsed: {:?}", i + 1, sym, parsed);
+//!     println!("Input: {:?} => Parsed: {:?}", sym, parsed);
 //! }
 //! ```
 //!
-//! ## 2. HKID Prefix Parsing
+//! ### 2. HKID Prefix Parsing
 //!
-//! ```ignore
-//! use hkid_ops::HKIDPrefix;
+//! ```rust
+//! use hkid_ops::hkid_prefix::HKIDPrefix;
 //!
 //! let prefixes = [
 //!     "A", "C", "F", "K", "N", "R", "Z", "EC", "WX", "XA", "Unknown"
 //! ];
-//! for (i, prefix) in prefixes.iter().enumerate() {
+//! for prefix in prefixes.iter() {
 //!     let parsed = HKIDPrefix::parse(prefix);
-//!     println!("[{}] Input: {:?} => Parsed: {:?}", i + 1, prefix, parsed);
+//!     println!("Input: {:?} => Parsed: {:?}", prefix, parsed);
 //! }
 //! ```
 //!
-//! ## 3. HKID Generation and Validation (Known Prefixes)
+//! ### 3. HKID Generation and Validation (Known Prefixes)
 //!
-//! ```ignore
-//! use hkid_ops::{hkid_generator, validate_hkid};
+//! ```rust
+//! use hkid_ops::hkid_ops::HKIDOps;
 //!
+//! let ops = HKIDOps {};
 //! let gen_prefixes = ["A", "K", "WX", "XA"];
-//! for (i, prefix) in gen_prefixes.iter().enumerate() {
-//!     println!("\n[{}] Generating HKID with prefix '{}':", i + 1, prefix);
-//!     match hkid_generator::generate_hkid(Some(prefix), true) {
+//! for prefix in gen_prefixes.iter() {
+//!     println!("\nGenerating HKID with prefix '{}':", prefix);
+//!     match ops.generate_hkid(Some(prefix), true) {
 //!         Ok(hkid) => {
 //!             println!("Generated: {}", hkid);
 //!             // Validate the generated HKID
-//!             match validate_hkid(&hkid, true) {
+//!             match ops.validate_hkid(&hkid, true) {
 //!                 Ok(valid) => println!("    Validation result: {}", if valid { "Valid" } else { "Invalid" }),
 //!                 Err(e) => println!("    Validation error: {}", e),
 //!             }
@@ -54,37 +73,39 @@
 //! }
 //! ```
 //!
-//! ## 4. HKID Generation Allowing Unknown Prefixes
+//! ### 4. HKID Generation Allowing Unknown Prefixes
 //!
-//! ```ignore
-//! use hkid_ops::hkid_generator;
+//! ```rust
+//! use hkid_ops::hkid_ops::HKIDOps;
 //!
+//! let ops = HKIDOps {};
 //! let test_prefixes = ["A", "WX", "ZZ"];
 //! for prefix in test_prefixes {
-//!     println!("\nGenerating HKID with prefix '{}', must_exist_in_enum = true:", prefix);
-//!     match hkid_generator::generate_hkid(Some(prefix), true) {
+//!     println!("Generating HKID with prefix '{}', must_exist_in_enum = true:", prefix);
+//!     match ops.generate_hkid(Some(prefix), true) {
 //!         Ok(hkid) => println!("    Generated: {}", hkid),
 //!         Err(e) => println!("    Error: {}", e),
 //!     }
 //!     println!("Generating HKID with prefix '{}', must_exist_in_enum = false:", prefix);
-//!     match hkid_generator::generate_hkid(Some(prefix), false) {
+//!     match ops.generate_hkid(Some(prefix), false) {
 //!         Ok(hkid) => println!("    Generated (allowed unknown): {}", hkid),
 //!         Err(e) => println!("    Error: {}", e),
 //!     }
 //! }
 //! ```
 //!
-//! ## 5. HKID Generation Using a Random Prefix
+//! ### 5. HKID Generation Using a Random Prefix
 //!
-//! ```ignore
-//! use hkid_ops::{hkid_generator, validate_hkid};
+//! ```rust
+//! use hkid_ops::hkid_ops::HKIDOps;
+//!
+//! let ops = HKIDOps {};
 //!
 //! // Random known prefix
-//! println!("Generating HKID with random prefix (must_exist_in_enum = true):");
-//! match hkid_generator::generate_hkid(None, true) {
+//! match ops.generate_hkid(None, true) {
 //!     Ok(hkid) => {
-//!         println!("    Generated: {}", hkid);
-//!         match validate_hkid(&hkid, true) {
+//!         println!("Generated with random known prefix: {}", hkid);
+//!         match ops.validate_hkid(&hkid, true) {
 //!             Ok(valid) => println!("    Validation result: {}", if valid { "Valid" } else { "Invalid" }),
 //!             Err(e) => println!("    Validation error: {}", e),
 //!         }
@@ -93,11 +114,10 @@
 //! }
 //!
 //! // Random unknown-or-known prefix
-//! println!("Generating HKID with random prefix (must_exist_in_enum = false):");
-//! match hkid_generator::generate_hkid(None, false) {
+//! match ops.generate_hkid(None, false) {
 //!     Ok(hkid) => {
-//!         println!("    Generated: {}", hkid);
-//!         match validate_hkid(&hkid, false) {
+//!         println!("Generated with random any prefix: {}", hkid);
+//!         match ops.validate_hkid(&hkid, false) {
 //!             Ok(valid) => println!("    Validation result: {}", if valid { "Valid" } else { "Invalid" }),
 //!             Err(e) => println!("    Validation error: {}", e),
 //!         }
@@ -106,56 +126,31 @@
 //! }
 //! ```
 //!
-//! ## 6. HKID Validation (Various Samples)
+//! ### 6. HKID Validation (Various Samples)
 //!
-//! ```ignore
-//! use hkid_ops::validate_hkid;
+//! ```rust
+//! use hkid_ops::hkid_ops::HKIDOps;
 //!
+//! let ops = HKIDOps {};
 //! let samples = [
-//!     ("A123456(7)", true),    // Valid, known prefix, correct format
-//!     ("AB123456(9)", true),   // Valid, known prefix, correct format
+//!     ("A123456(3)", true),    // Valid, known prefix, correct check digit
+//!     ("AB123456(9)", true),   // Valid, known prefix, correct check digit
 //!     ("ZZ123456(9)", false),  // Unknown prefix, but allowed
 //!     ("A123456(8)", true),    // Invalid check digit
 //!     ("A12345(7)", true),     // Invalid length
-//!     ("A123456(7)", false),   // Accept unknown prefix (should be fine)
+//!     ("A123456(3)", false),   // Accept unknown prefix (should be fine)
 //!     ("PB100001(8)", false),  // Valid for unknown prefix
 //!     ("PB100001(8)", true),   // Unknown prefix, must_exist_in_enum
 //! ];
-//! for (i, (hkid, must_exist)) in samples.iter().enumerate() {
-//!     println!("\n[{}] Validating HKID '{}', must_exist_in_enum = {}:", i + 1, hkid, must_exist);
-//!     match validate_hkid(hkid, *must_exist) {
+//! for (hkid, must_exist) in samples.iter() {
+//!     println!("Validating HKID '{}', must_exist_in_enum = {}:", hkid, must_exist);
+//!     match ops.validate_hkid(hkid, *must_exist) {
 //!         Ok(valid) => println!("{}", if valid { "Valid" } else { "Invalid" }),
 //!         Err(e) => println!("Error: {}", e),
 //!     }
 //! }
 //! ```
-//!
-//! ---
-//!
-//! For more advanced or interactive usage, see the `examples/` directory of the repository.
-//!
-//! > These code snippets are for demonstration purposes; some require the crate to be used as a binary for visible output via `println!`.
-//!
 
-pub mod hkid_check_digit;
-pub mod hkid_generator;
 pub mod hkid_prefix;
 pub mod hkid_symbol;
-pub mod hkid_validator;
-
-use regex::Regex;
-
-const WEIGHTS: [u32; 8] = [9, 8, 7, 6, 5, 4, 3, 2];
-
-/// Pattern for a valid HKID body: 7 or 8 uppercase letters/digits (A-Z, 0-9)
-const VALID_HKID_BODY_PATTERN: &str = r"^[A-Z0-9]{7,8}$";
-// For best efficiency (and to avoid recompiling the regex on every function call)
-static VALID_HKID_BODY_REGEX: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| Regex::new(VALID_HKID_BODY_PATTERN).unwrap());
-
-// Regex pattern for a full HKID:
-// - 1 or 2 uppercase letters (prefix)
-// - 6 digits
-// - 1 check digit (A or 0-9)
-const HKID_FULL_PATTERN: &str = r"^([A-Z]{1,2})([0-9]{6})([A0-9])$";
-// Compiled regex for matching full HKID against its official structure.
-static HKID_FULL_REGEX: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| Regex::new(HKID_FULL_PATTERN).unwrap());
+pub mod hkid_ops;
