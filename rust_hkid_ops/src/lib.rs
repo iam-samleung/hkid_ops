@@ -143,4 +143,20 @@ pub mod hkid_prefix;
 pub mod hkid_symbol;
 pub mod hkid_validator;
 
+use once_cell::sync::Lazy;
+use regex::Regex;
+
 const WEIGHTS: [u32; 8] = [9, 8, 7, 6, 5, 4, 3, 2];
+
+/// Pattern for a valid HKID body: 7 or 8 uppercase letters/digits (A-Z, 0-9)
+const VALID_HKID_BODY_PATTERN: &str = r"^[A-Z0-9]{7,8}$";
+// For best efficiency (and to avoid recompiling the regex on every function call)
+static VALID_HKID_BODY_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(VALID_HKID_BODY_PATTERN).unwrap());
+
+// Regex pattern for a full HKID:
+// - 1 or 2 uppercase letters (prefix)
+// - 6 digits
+// - 1 check digit (A or 0-9)
+const HKID_FULL_PATTERN: &str = r"^([A-Z]{1,2})([0-9]{6})([A0-9])$";
+// Compiled regex for matching full HKID against its official structure.
+static HKID_FULL_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(HKID_FULL_PATTERN).unwrap());

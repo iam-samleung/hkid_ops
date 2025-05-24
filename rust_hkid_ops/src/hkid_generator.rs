@@ -1,6 +1,4 @@
-use rand::rng;
-use rand::seq::IndexedRandom;
-use rand::Rng;
+use rand::{rng, Rng, seq::IndexedRandom};
 use strum::IntoEnumIterator;
 
 use crate::{hkid_check_digit::calculate_check_digit, hkid_prefix::HKIDPrefix};
@@ -29,24 +27,82 @@ fn random_uppercase_letter<R: Rng + ?Sized>(rng: &mut R) -> char {
     rng.random_range(b'A'..=b'Z') as char
 }
 
-/// Generates a random Hong Kong Identity Card (HKID) number with the specified or random prefix.
+/// Selects a random known HKID prefix from the `HKIDPrefix` enum.
 ///
-/// This function creates a validly-formatted HKID string by:
-/// 1. Validating the prefix (optionally enforcing that it is a known HKID prefix).
-/// 2. Appending six random digits to the prefix.
-/// 3. Calculating the correct check digit for the generated body.
-/// 4. Returning the final HKID in the standard format (with the check digit in parentheses).
+/// This function filters all variants of `HKIDPrefix` to include only those that are recognized
+/// as "known" (using `is_known`), and returns one at random as an owned `String`.
+/// Returns `None` if there are no known prefixes.
 ///
 /// # Arguments
-/// - `prefix`: The prefix to use for the HKID (e.g., `"A"`, `"AB"`, `"WX"`). If `None`, a random prefix is generated.
-/// - `must_exist_in_enum`: If `true`, the function returns an error if the prefix is not recognized by `HKIDPrefix`.
-///
-/// # Random Prefix Logic
-/// - If `prefix` is `None` and `must_exist_in_enum` is `true`, a random known prefix is selected from `HKIDPrefix`.
-/// - If `prefix` is `None` and `must_exist_in_enum` is `false`, a random one-letter or two-letter uppercase prefix is generated (e.g., `"A"`, `"ZQ"`).
+/// * `rng` - A mutable reference to a random number generator implementing the `Rng` trait.
 ///
 /// # Returns
-/// - `Ok(String)`: A randomly generated HKID string in the format `PREFIXdddddd(C)`, where `d` is a digit and `C` is the check digit.
+/// * `Some(String)` - A randomly selected known prefix as an owned `String`.
+/// * `None` - If no known prefixes are available.
+///
+/// # Example
+/// ```ignore
+/// use rand::thread_rng;
+///
+/// let mut rng = thread_rng();
+/// if let Some(prefix) = random_known_prefix(&mut rng) {
+///     println!("Random known prefix: {}", prefix);
+/// }
+/// ```
+fn random_known_prefix<R: Rng>(rng: &mut R) -> Option<String> {
+    let valid_prefixes = HKIDPrefix::iter()
+        .filter(HKIDPrefix::is_known)
+        .map(|variant| variant.as_str())
+        .collect::<Vec<String>>();
+
+    valid_prefixes.choose(rng).cloned()
+}
+
+/// Generates a random one-letter or two-letter uppercase prefix for HKID.
+///
+/// Randomly chooses either one or two uppercase ASCII letters ('A' to 'Z') to form a prefix string.
+/// The length is chosen at random (50% chance for each).
+///
+/// # Arguments
+/// * `rng` - A mutable reference to a random number generator implementing the `Rng` trait.
+///
+/// # Returns
+/// * `String` - A randomly generated prefix consisting of one or two uppercase letters.
+///
+/// # Example
+/// ```ignore
+/// let mut rng = thread_rng();
+/// let prefix = random_prefix(&mut rng);
+/// assert!(prefix.len() == 1 || prefix.len() == 2);
+/// assert!(prefix.chars().all(|c| c.is_ascii_uppercase()));
+/// ```
+fn random_prefix<R: Rng>(rng: &mut R) -> String {
+    let len = if rng.random_bool(0.5) { 1 } else { 2 };
+
+    (0..len).map(|_| random_uppercase_letter(rng))
+        .collect()
+}
+
+/// Generates a random Hong Kong Identity Card (HKID) number, using a specified or random prefix.
+///
+/// This function creates a valid HKID string by:
+/// 1. Validating the prefix (enforcing that it is a known HKID prefix if required).
+/// 2. Appending six random digits to the prefix.
+/// 3. Calculating the correct check digit for the generated HKID body.
+/// 4. Returning the final HKID in the format `<PREFIX>dddddd(C)`, where `d` is a digit and `C` is the check digit.
+///
+/// # Arguments
+/// - `prefix`: An optional prefix for the HKID (e.g., `"A"`, `"AB"`). If `None`, a random prefix is generated.
+/// - `must_exist_in_enum`: If `true`, the function returns an error if the prefix is not recognized by `HKIDPrefix`.
+///
+/// # Prefix Logic
+/// - If `prefix` is `Some` and `must_exist_in_enum` is `true`, the prefix is validated against known HKID prefixes.
+/// - If `prefix` is `Some` and `must_exist_in_enum` is `false`, the prefix is used as is.
+/// - If `prefix` is `None` and `must_exist_in_enum` is `true`, a random known prefix is selected from `HKIDPrefix`.
+/// - If `prefix` is `None` and `must_exist_in_enum` is `false`, a random one- or two-letter uppercase prefix is generated.
+///
+/// # Returns
+/// - `Ok(String)`: A randomly generated HKID string in the format `<PREFI>Xdddddd(C)`.
 /// - `Err(String)`: If the prefix is not recognized and `must_exist_in_enum` is `true`.
 ///
 /// # Errors
@@ -56,15 +112,15 @@ fn random_uppercase_letter<R: Rng + ?Sized>(rng: &mut R) -> char {
 /// ```ignore
 /// use hkid_ops::utils::{generate_hkid, HKIDPrefix};
 ///
-/// // Generate with known prefix
+/// // Generate with a known prefix
 /// let hkid = generate_hkid(Some("A"), true).unwrap();
 /// assert!(hkid.starts_with("A"));
 ///
-/// // Generate with random known prefix
+/// // Generate with a random known prefix
 /// let hkid_random_known = generate_hkid(None, true).unwrap();
-/// // (prefix is guaranteed to be in the HKIDPrefix enum)
+/// // (Prefix is guaranteed to be in the HKIDPrefix enum)
 ///
-/// // Generate with random one- or two-letter prefix
+/// // Generate with a random one- or two-letter prefix
 /// let hkid_any = generate_hkid(None, false).unwrap();
 /// assert!(hkid_any.len() >= 10 && hkid_any.len() <= 11);
 ///
@@ -80,68 +136,50 @@ fn random_uppercase_letter<R: Rng + ?Sized>(rng: &mut R) -> char {
 /// - The random number generator used must provide `random_range`.
 /// - The check digit calculation uses your implementation of `calculate_check_digit`.
 ///
-pub fn generate_hkid(
-    prefix: Option<&str>,
-    must_exist_in_enum: bool,
-) -> Result<String, String> {
+pub fn generate_hkid(prefix: Option<&str>, must_exist_in_enum: bool) -> Result<String, String> {
     let mut rng = rng();
 
-    // Determine prefix string
-    let prefix_str = match prefix {
-        Some(px) => {
+    // Determine the HKID prefix string based on user input and requirements:
+    // - If a prefix is provided and must exist in the enum, validate it and return an error if unrecognized.
+    // - If a prefix is provided and enum validation is not required, use it directly.
+    // - If no prefix is provided but must exist in the enum, randomly select a valid known prefix.
+    // - If no prefix is provided and any prefix is allowed, generate a random one- or two-letter uppercase prefix.
+    let prefix_str = match (prefix, must_exist_in_enum) {
+        (Some(px), true) => {
             let parsed_prefix = HKIDPrefix::parse(px);
-            if must_exist_in_enum && !parsed_prefix.is_known() {
+
+            if !parsed_prefix.is_known() {
                 return Err(format!("Prefix '{px}' is not recognized"));
             }
+
             parsed_prefix.as_str()
         }
-        None => {
-            if must_exist_in_enum {
-                let valid_prefixes: Vec<String> = HKIDPrefix::iter()
-                    .filter(HKIDPrefix::is_known)
-                    .map(|variant| variant.as_str())
-                    .collect();
-
-                valid_prefixes
-                    .choose(&mut rng)
-                    .cloned() // Use cloned() for Option<&String> to Option<String>
-                    .ok_or_else(|| "No valid prefixes in HKIDPrefix enum".to_string())?
-            } else {
-                // Generate a random one or two letter uppercase prefix
-                if rng.random_range(0..2) == 0 {
-                    // One-letter prefix
-                    random_uppercase_letter(&mut rng).to_string()
-                } else {
-                    // Two-letter prefix
-                    let prefix: String = (0..2)
-                        .map(|_| random_uppercase_letter(&mut rng))
-                        .collect();
-                    prefix
-                }
-            }
+        (Some(px), false) => {
+            HKIDPrefix::parse(px).as_str()
         }
+        (None, true) => {
+            random_known_prefix(&mut rng)
+                .ok_or_else(|| "No valid prefixes in HKIDPrefix enum".to_string())?
+                .to_string()
+        }
+        (None, false) => random_prefix(&mut rng),
     };
 
-    // Compose HKID body
-    let mut hkid_body = prefix_str;
-
-    // Append 6 random digits
-    for _ in 0..6 {
-        hkid_body.push_str(&rng.random_range(0..10).to_string());
-    }
-
-    let check_digit = calculate_check_digit(&hkid_body);
+    // Generate 6 random digits
+    let digits = (0..6).map(|_| rng.random_range(0..10).to_string()).collect::<String>();
+    let hkid_body = format!("{prefix_str}{digits}");
+    let check_digit = calculate_check_digit(&hkid_body).ok_or_else(|| "Failed to calculate check digit")?;
 
     Ok(format!("{hkid_body}({check_digit})"))
 }
 
 #[cfg(test)]
 mod tests {
-    use rand::{rng};
-    use super::{generate_hkid, random_uppercase_letter};
+    use rand::rng;
+    use super::{generate_hkid, random_uppercase_letter, random_prefix, random_known_prefix, HKIDPrefix};
 
     #[test]
-    fn test_random_uppercase_letter() {
+    fn test_random_uppercase_letter_range() {
         let mut rng = rng();
         // Run the function multiple times to check its range and type
         for _ in 0..100 {
@@ -149,9 +187,42 @@ mod tests {
 
             assert!(
                 c.is_ascii_uppercase(),
-                "Generated character '{}' is not an ASCII uppercase letter",
-                c
+                "Generated char '{}' is not ASCII uppercase", c
             );
+            assert!(
+                ('A'..='Z').contains(&c),
+                "Generated char '{}' is not in 'A'..='Z'", c
+            );
+        }
+    }
+
+    #[test]
+    fn test_random_prefix_length_and_case() {
+        let mut rng = rng();
+        for _ in 0..100 {
+            let prefix = random_prefix(&mut rng);
+            assert!(
+                prefix.len() == 1 || prefix.len() == 2,
+                "Prefix length should be 1 or 2, got '{}'", prefix
+            );
+            assert!(
+                prefix.chars().all(|c| c.is_ascii_uppercase()),
+                "Prefix '{}' should be all uppercase", prefix
+            );
+        }
+    }
+
+    #[test]
+    fn test_random_known_prefix_is_known() {
+        let mut rng = rng();
+        for _ in 0..20 {
+            if let Some(prefix) = random_known_prefix(&mut rng) {
+                // Must be one of the known prefixes in the enum
+                let parsed = HKIDPrefix::parse(&prefix);
+                assert!(parsed.is_known(), "random_known_prefix produced unknown prefix: {}", prefix);
+            } else {
+                // If no known prefixes exist, that's fine (empty enum)
+            }
         }
     }
 
@@ -175,6 +246,7 @@ mod tests {
         if prefix_len < 7 || prefix_len > 8 {
             return false;
         }
+
         // Last 6 chars before ( should be digits
         prefix_digits
             .chars()
@@ -231,13 +303,17 @@ mod tests {
 
         let hkid = result.unwrap();
 
-        // At least one digit after prefix
         assert!(is_valid_format(&hkid));
+
+        // The prefix should be known
+        let prefix_len = hkid.find(|c: char| c.is_ascii_digit()).unwrap();
+        let prefix = &hkid[..prefix_len];
+
+        assert!(HKIDPrefix::parse(prefix).is_known());
     }
 
     #[test]
     fn test_generate_hkid_with_random_any_prefix() {
-        // Should generate HKID with a 1- or 2-letter uppercase prefix
         let result = generate_hkid(None, false);
 
         assert!(result.is_ok());
@@ -251,6 +327,7 @@ mod tests {
         assert!(prefix_len == 1 || prefix_len == 2);
 
         let prefix = &hkid[..prefix_len];
+
         for c in prefix.chars() {
             assert!(c.is_ascii_uppercase());
         }
@@ -267,6 +344,13 @@ mod tests {
     fn test_generate_hkid_with_lowercase_prefix() {
         // Should treat lowercase unknown prefix as not recognized
         let result = generate_hkid(Some("a"), true);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_generate_hkid_with_unknown_prefix_not_allowed() {
+        // Custom prefix "ZZ" not allowed if must_exist_in_enum is true
+        let result = generate_hkid(Some("ZZ"), true);
         assert!(result.is_err());
     }
 }
