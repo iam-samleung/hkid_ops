@@ -204,7 +204,7 @@ pub struct HKIDOps;
 impl HKIDOps {
     #[inline]
     pub fn new() -> Self {
-        Self::default()
+        Self {}
     }
 
     /// Converts a single character to its HKID numeric value according to the HKID scheme.
@@ -222,12 +222,12 @@ impl HKIDOps {
     /// # Returns
     /// * `Some(u32)` - The numeric value associated with the character.
     /// * `None` - If the character is not a valid HKID character.
-    fn char_to_value(&self, c: char) -> Option<u32> {
+    fn char_to_value(c: char) -> Option<u32> {
         let c = c.to_ascii_uppercase() as u8;
 
         match c {
-            b'A'..=b'Z' => Some((c - b'A' + 10) as u32),
-            b'0'..=b'9' => Some((c - b'0') as u32),
+            b'A'..=b'Z' => Some(u32::from(c - b'A' + 10)),
+            b'0'..=b'9' => Some(u32::from(c - b'0')),
             b' ' => Some(36),
             _ => None,
         }
@@ -238,7 +238,7 @@ impl HKIDOps {
     /// # Returns
     ///
     /// A randomly selected uppercase ASCII letter as a `char`.
-    fn random_uppercase_letter(&self) -> char {
+    fn random_uppercase_letter() -> char {
         fastrand::char('A'..='Z')
     }
 
@@ -257,9 +257,9 @@ impl HKIDOps {
     /// # Notes
     /// - Uses `fastrand` for efficient random selection.
     /// - The returned prefix is a static string slice and will always be from the known set.
-    fn random_known_prefix(&self) -> Option<&'static str> {
+    fn random_known_prefix() -> &'static str {
         let idx = fastrand::usize(..KNOWN_PREFIXES.len());
-        Some(KNOWN_PREFIXES[idx])
+        KNOWN_PREFIXES[idx]
     }
 
     /// Generates a random one- or two-letter uppercase prefix.
@@ -277,12 +277,12 @@ impl HKIDOps {
     /// # Notes
     /// - The randomness relies on `fastrand` for performance.
     /// - Typically used for generating random prefixes in HKID generation or similar use-cases.
-    fn random_prefix(&self) -> String {
+    fn random_prefix() -> String {
         let len = if fastrand::bool() { 1 } else { 2 };
         let mut s = String::with_capacity(len);
 
         for _ in 0..len {
-            s.push(self.random_uppercase_letter());
+            s.push(Self::random_uppercase_letter());
         }
 
         s
@@ -327,7 +327,7 @@ impl HKIDOps {
         }
 
         let padded_body = format!("{hkid_body:>8}");
-        let values = padded_body.chars().map(|c| self.char_to_value(c)).collect::<Option<Vec<u32>>>()?;
+        let values = padded_body.chars().map(Self::char_to_value).collect::<Option<Vec<u32>>>()?;
         let sum = values.iter().zip(WEIGHTS.iter()).map(|(v, w)| v * w).sum::<u32>();
         let check_digit = (11 - sum % 11) % 11;
 
@@ -414,8 +414,8 @@ impl HKIDOps {
 
         let prefix_str = match (prefix, must_exist_in_enum) {
             (Some(px), true | false) => HKIDPrefix::parse(px).as_str().to_string(),
-            (None, true) => self.random_known_prefix().map(str::to_string).ok_or_else(|| "No valid prefixes in HKIDPrefix enum".to_string())?,
-            (None, false) => self.random_prefix(),
+            (None, true) => Self::random_known_prefix().to_string(),
+            (None, false) => Self::random_prefix(),
         };
 
         let digits = (0..6).map(|_| fastrand::u8(0..10).to_string()).collect::<String>();
@@ -503,42 +503,34 @@ mod tests {
 
     #[test]
     fn test_char_to_value() {
-        let ops = HKIDOps::new();
-
-        assert_eq!(ops.char_to_value('A'), Some(10));
-        assert_eq!(ops.char_to_value('Z'), Some(35));
-        assert_eq!(ops.char_to_value('a'), Some(10));
-        assert_eq!(ops.char_to_value('z'), Some(35));
-        assert_eq!(ops.char_to_value('0'), Some(0));
-        assert_eq!(ops.char_to_value('9'), Some(9));
-        assert_eq!(ops.char_to_value(' '), Some(36));
-        assert_eq!(ops.char_to_value('@'), None);
-        assert_eq!(ops.char_to_value('_'), None);
+        assert_eq!(HKIDOps::char_to_value('A'), Some(10));
+        assert_eq!(HKIDOps::char_to_value('Z'), Some(35));
+        assert_eq!(HKIDOps::char_to_value('a'), Some(10));
+        assert_eq!(HKIDOps::char_to_value('z'), Some(35));
+        assert_eq!(HKIDOps::char_to_value('0'), Some(0));
+        assert_eq!(HKIDOps::char_to_value('9'), Some(9));
+        assert_eq!(HKIDOps::char_to_value(' '), Some(36));
+        assert_eq!(HKIDOps::char_to_value('@'), None);
+        assert_eq!(HKIDOps::char_to_value('_'), None);
     }
 
     #[test]
     fn test_random_uppercase_letter() {
-        let ops = HKIDOps::new();
-        let letter = ops.random_uppercase_letter();
+        let letter = HKIDOps::random_uppercase_letter();
 
         assert!(letter >= 'A' && letter <= 'Z', "Letter should be ASCII uppercase");
     }
 
     #[test]
     fn test_random_known_prefix() {
-        let hkid_ops = HKIDOps::new();
-        let prefix_opt = hkid_ops.random_known_prefix();
+        let prefix = HKIDOps::random_known_prefix();
 
-        if let Some(prefix) = prefix_opt {
-            assert!(KNOWN_PREFIXES.contains(&prefix));
-        }
+        assert!(KNOWN_PREFIXES.contains(&prefix));
     }
 
     #[test]
     fn test_random_prefix() {
-        let hkid_ops = HKIDOps::new();
-        // Example usage (assuming hkid_ops.random_prefix() exists)
-        let prefix = hkid_ops.random_prefix();
+        let prefix = HKIDOps::random_prefix();
 
         assert!(prefix.len() == 1 || prefix.len() == 2, "Prefix should be 1 or 2 characters");
         assert!(prefix.chars().all(|c| c.is_ascii_uppercase()), "All characters should be ASCII uppercase");
