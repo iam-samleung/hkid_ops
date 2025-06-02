@@ -41,7 +41,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-hkid_ops = "0.2.5"
+hkid_ops = "0.3.1"
 ```
 
 ---
