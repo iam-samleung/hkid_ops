@@ -39,7 +39,7 @@
 //! ### 2. HKID Prefix Parsing
 //!
 //! ```rust
-//! use hkid_ops::hkid_prefix::HKIDPrefix;
+//! use crate::hkid_ops::hkid_prefix::HKIDPrefix;
 //!
 //! let prefixes = [
 //!     "A", "C", "F", "K", "N", "R", "Z", "EC", "WX", "XA", "Unknown"
@@ -55,8 +55,9 @@
 //! ```rust
 //! use hkid_ops::hkid_ops::HKIDOps;
 //!
-//! let ops = HKIDOps {};
+//! let ops = HKIDOps::new();
 //! let gen_prefixes = ["A", "K", "WX", "XA"];
+//!
 //! for prefix in gen_prefixes.iter() {
 //!     println!("\nGenerating HKID with prefix '{}':", prefix);
 //!     match ops.generate_hkid(Some(prefix), true) {
@@ -78,8 +79,9 @@
 //! ```rust
 //! use hkid_ops::hkid_ops::HKIDOps;
 //!
-//! let ops = HKIDOps {};
+//! let ops = HKIDOps::new();
 //! let test_prefixes = ["A", "WX", "ZZ"];
+//!
 //! for prefix in test_prefixes {
 //!     println!("Generating HKID with prefix '{}', must_exist_in_enum = true:", prefix);
 //!     match ops.generate_hkid(Some(prefix), true) {
@@ -99,7 +101,7 @@
 //! ```rust
 //! use hkid_ops::hkid_ops::HKIDOps;
 //!
-//! let ops = HKIDOps {};
+//! let ops = HKIDOps::new();
 //!
 //! // Random known prefix
 //! match ops.generate_hkid(None, true) {
@@ -131,7 +133,8 @@
 //! ```rust
 //! use hkid_ops::hkid_ops::HKIDOps;
 //!
-//! let ops = HKIDOps {};
+//! let ops = HKIDOps::new();
+//!
 //! let samples = [
 //!     ("A123456(3)", true),    // Valid, known prefix, correct check digit
 //!     ("AB123456(9)", true),   // Valid, known prefix, correct check digit
@@ -150,6 +153,9 @@
 //!     }
 //! }
 //! ```
+
+#[macro_use]
+mod hkid_prefixes_macro;
 
 pub mod hkid_prefix;
 pub mod hkid_symbol;

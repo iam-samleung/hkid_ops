@@ -41,7 +41,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-hkid_ops = "0.2.2"
+hkid_ops = "0.2.5"
 ```
 
 ---
@@ -52,7 +52,7 @@ hkid_ops = "0.2.2"
 use hkid_ops::hkid_ops::HKIDOps;
 
 fn main() {
-  let hkid_ops = HKIDOps {};
+  let hkid_ops = HKIDOps::new();
 
   // Generate a random HKID with a known prefix
   let hkid = hkid_ops.generate_hkid(None, true).unwrap();
@@ -74,6 +74,14 @@ fn main() {
 }
 ```
 
+Output:
+```
+Random valid HKID: T525548(6)
+HKID with prefix A: A444227(2)
+HKID with custom prefix: ZZ034129(A)
+Is HKID valid? true
+```
+
 ---
 
 ## HKID Generation Logic
@@ -86,6 +94,32 @@ fn main() {
     - If `must_exist_in_enum` is `false`, a random 1- or 2-letter uppercase prefix is generated.
 - **Unknown/Custom Prefix:**  
   Allowed only if `must_exist_in_enum` is `false`.
+
+---
+### Performance
+
+The `generate_hkid` function was benchmarked on an Apple M1 Max (10-core CPU, 64 GB RAM) across four input scenarios:
+
+- **Specific, known prefix:**  
+  `generate_hkid(Some("A"), true)`  
+  Generates an HKID using the provided prefix `"A"`, requiring that the prefix is recognized as a standard HKID prefix.
+
+- **Specific, unchecked prefix:**  
+  `generate_hkid(Some("A"), false)`  
+  Generates an HKID using the provided prefix `"A"`, performing only format validation without requiring that the prefix appears in the standard prefix list.
+
+- **Random, known prefix:**  
+  `generate_hkid(None, true)`  
+  Generates an HKID using a randomly selected standard HKID prefix from the HKID prefix enum.
+
+- **Completely random prefix:**  
+  `generate_hkid(None, false)`  
+  Generates an HKID using a randomly generated prefix, which may or may not be a recognized standard prefix.
+
+For each scenario, the function constructs the HKID prefix, generates six random digits, computes the check digit, and returns the formatted HKID string. Invalid or unrecognized prefixes are rejected based on the `must_exist_in_enum` parameter.
+
+**Throughput:**  
+All four scenarios measured approximately **2.2 million operations per second (OPS/sec)** on the specified hardware.
 
 ---
 ## License

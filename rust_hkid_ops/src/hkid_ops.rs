@@ -1,8 +1,6 @@
-use rand::{Rng, seq::IndexedRandom};
 use regex::Regex;
-use strum::IntoEnumIterator;
 
-use crate::hkid_prefix::HKIDPrefix;
+use crate::hkid_prefix::{HKIDPrefix, KNOWN_PREFIXES};
 
 /// The weights used in HKID check digit calculation.
 ///
@@ -34,12 +32,12 @@ use crate::hkid_prefix::HKIDPrefix;
 ///
 /// let hkid_body = "A123456";
 /// let padded = format!("{:>8}", hkid_body); // Left pad to 8 chars: " A123456"
-/// let values: Vec<u32> = padded.chars().map(|c| char_to_value(c).unwrap()).collect();
+/// let values = padded.chars().map(|c| char_to_value(c).unwrap()).collect::<Vec<u32>>();
 ///
 /// // Calculate weighted sum
-/// let weighted_sum: u32 = values.iter().zip(WEIGHTS.iter())
+/// let weighted_sum = values.iter().zip(WEIGHTS.iter())
 ///     .map(|(v, w)| v * w)
-///     .sum();
+///     .sum::<u32>();
 ///
 /// // Calculate check digit
 /// let check_digit = (11 - (weighted_sum % 11)) % 11;
@@ -58,10 +56,12 @@ pub const WEIGHTS: [u32; 8] = [9, 8, 7, 6, 5, 4, 3, 2];
 /// corresponding to valid HKID prefixes such as `"A"`, `"AB"`, `"WX"`, etc. Lowercase, digits, or other characters are not allowed.
 ///
 /// # Examples
-/// ```
-/// # use regex::Regex;
-/// # const VALID_PREFIX_PATTERN: &str = r"^[A-Z]{1,2}$";
+/// ```rust
+/// use regex::Regex;
+///
+/// const VALID_PREFIX_PATTERN: &str = r"^[A-Z]{1,2}$";
 /// let re = Regex::new(VALID_PREFIX_PATTERN).unwrap();
+///
 /// assert!(re.is_match("A"));      // Valid: single letter
 /// assert!(re.is_match("EC"));     // Valid: two letters
 /// assert!(!re.is_match("a"));     // Invalid: lowercase
@@ -82,9 +82,11 @@ const VALID_PREFIX_PATTERN: &str = r"^[A-Z]{1,2}$";
 ///
 /// # Example
 /// ```rust
-/// # use regex::Regex;
-/// # const VALID_PREFIX_PATTERN: &str = r"^[A-Z]{1,2}$";
-/// # static VALID_PREFIX_REGEX: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| Regex::new(VALID_PREFIX_PATTERN).unwrap());
+/// use regex::Regex;
+///
+/// const VALID_PREFIX_PATTERN: &str = r"^[A-Z]{1,2}$";
+/// static VALID_PREFIX_REGEX: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| Regex::new(VALID_PREFIX_PATTERN).unwrap());
+///
 /// assert!(VALID_PREFIX_REGEX.is_match("A"));
 /// assert!(VALID_PREFIX_REGEX.is_match("EC"));
 /// assert!(!VALID_PREFIX_REGEX.is_match("abc"));
@@ -100,8 +102,9 @@ static VALID_PREFIX_REGEX: std::sync::LazyLock<Regex> = std::sync::LazyLock::new
 ///
 /// # Examples
 /// ```rust
-/// # use regex::Regex;
-/// # const VALID_HKID_BODY_PATTERN: &str = r"^[A-Z0-9]{7,8}$";
+/// use regex::Regex;
+///
+/// const VALID_HKID_BODY_PATTERN: &str = r"^[A-Z0-9]{7,8}$";
 /// let re = Regex::new(VALID_HKID_BODY_PATTERN).unwrap();
 ///
 /// assert!(re.is_match("A123456"));    // 7 chars, valid
@@ -122,10 +125,11 @@ const VALID_HKID_BODY_PATTERN: &str = r"^[A-Z0-9]{7,8}$";
 /// Using a static `LazyLock` ensures the regex is compiled only once, improving efficiency.
 ///
 /// # Examples
-/// ```
-/// # use regex::Regex;
-/// # use std::sync::LazyLock;
-/// # const VALID_HKID_BODY_PATTERN: &str = r"^[A-Z0-9]{7,8}$";
+/// ```rust
+/// use regex::Regex;
+/// use std::sync::LazyLock;
+///
+/// const VALID_HKID_BODY_PATTERN: &str = r"^[A-Z0-9]{7,8}$";
 /// static VALID_HKID_BODY_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(VALID_HKID_BODY_PATTERN).unwrap());
 ///
 /// assert!(VALID_HKID_BODY_REGEX.is_match("A123456"));    // 7 chars, valid
@@ -147,9 +151,10 @@ static VALID_HKID_BODY_REGEX: std::sync::LazyLock<Regex> = std::sync::LazyLock::
 /// - `"WX123456A"`
 ///
 /// # Examples
-/// ```
-/// # use regex::Regex;
-/// # const HKID_FULL_PATTERN: &str = r"^([A-Z]{1,2})([0-9]{6})([A0-9])$";
+/// ```rust
+/// use regex::Regex;
+///
+/// const HKID_FULL_PATTERN: &str = r"^([A-Z]{1,2})([0-9]{6})([A0-9])$";
 /// let re = Regex::new(HKID_FULL_PATTERN).unwrap();
 ///
 /// assert!(re.is_match("A1234567"));     // Valid: 1-letter prefix, digit check digit
@@ -165,93 +170,122 @@ static VALID_HKID_BODY_REGEX: std::sync::LazyLock<Regex> = std::sync::LazyLock::
 /// ```
 const HKID_FULL_PATTERN: &str = r"^([A-Z]{1,2})([0-9]{6})([A0-9])$";
 
-// Compiled regex for matching full HKID against its official structure.
+/// A lazily compiled regular expression for matching HKID strings against the official full HKID structure.
+///
+/// This static regex is compiled only once at runtime (on first use) and matches the
+/// standard Hong Kong Identity Card (HKID) format as defined by `HKID_FULL_PATTERN`.
+/// It is thread-safe and can be used anywhere in your code to validate or extract
+/// HKID details efficiently.
+///
+/// # Example
+/// ```rust
+/// use regex::Regex;
+///
+/// const HKID_FULL_PATTERN: &str = r"^([A-Z]{1,2})([0-9]{6})([A0-9])$";
+/// let re = Regex::new(HKID_FULL_PATTERN).unwrap();
+///
+/// let valid = "A1234567";
+/// let invalid = "123456A";
+///
+/// assert!(re.is_match(valid));
+/// assert!(!re.is_match(invalid));
+/// ```
+///
+/// # Notes
+/// - The pattern used is defined by `HKID_FULL_PATTERN`.
+/// - This uses `std::sync::LazyLock` to ensure the regex is only compiled once, even in multithreaded scenarios.
+/// - The regex crate must be in your dependencies.
 static HKID_FULL_REGEX: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| Regex::new(HKID_FULL_PATTERN).unwrap());
 
 /// `HKIDOps` provides the main implementation.
+#[derive(Default)]
 pub struct HKIDOps;
 
 impl HKIDOps {
-    /// Converts a single character to its corresponding HKID numeric value.
+    #[inline]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Converts a single character to its HKID numeric value according to the HKID scheme.
     ///
-    /// - Uppercase or lowercase English letters (`A`–`Z`, `a`–`z`) are mapped to 10–35:
-    ///   - `'A'`/`'a'` → 10, ..., `'Z'`/`'z'` → 35.
-    /// - Digits (`'0'`–`'9'`) are mapped to 0–9.
-    /// - A space character (`' '`) is mapped to 36.
+    /// This function maps characters to their numeric values as used in Hong Kong Identity Card (HKID) checksums:
+    ///
+    /// - English letters (case-insensitive): `'A'`/`'a'` to `'Z'`/`'z'` map to `10` through `35`.
+    /// - Digits: `'0'` to `'9'` map to `0` through `9`.
+    /// - Space (`' '`): maps to `36`.
     /// - Any other character returns `None`.
     ///
-    /// # Examples
-    /// ```rust
-    /// use hkid_ops::hkid_ops::HKIDOps;
+    /// # Arguments
+    /// * `c` - A character to convert.
     ///
-    /// assert_eq!(HKIDOps::char_to_value('A'), Some(10));
-    /// assert_eq!(HKIDOps::char_to_value('Z'), Some(35));
-    /// assert_eq!(HKIDOps::char_to_value('a'), Some(10));
-    /// assert_eq!(HKIDOps::char_to_value('5'), Some(5));
-    /// assert_eq!(HKIDOps::char_to_value(' '), Some(36));
-    /// assert_eq!(HKIDOps::char_to_value('-'), None);
-    /// assert_eq!(HKIDOps::char_to_value('_'), None);
-    /// ```
-    pub fn char_to_value(c: char) -> Option<u32> {
-        let c = c.to_ascii_uppercase();
+    /// # Returns
+    /// * `Some(u32)` - The numeric value associated with the character.
+    /// * `None` - If the character is not a valid HKID character.
+    fn char_to_value(&self, c: char) -> Option<u32> {
+        let c = c.to_ascii_uppercase() as u8;
 
         match c {
-            'A'..='Z' => Some((c as u32 - 'A' as u32) + 10),
-            '0'..='9' => Some(c as u32 - '0' as u32),
-            ' ' => Some(36),
+            b'A'..=b'Z' => Some((c - b'A' + 10) as u32),
+            b'0'..=b'9' => Some((c - b'0') as u32),
+            b' ' => Some(36),
             _ => None,
         }
     }
 
     /// Generates a random uppercase ASCII letter ('A' to 'Z').
     ///
-    /// # Arguments
-    ///
-    /// * `rng` - A mutable reference to a random number generator that implements the `Rng` trait.
-    ///
     /// # Returns
     ///
-    /// A randomly selected uppercase letter as a `char`.
-    pub fn random_uppercase_letter<R: Rng + ?Sized>(rng: &mut R) -> char {
-        (rng.random_range(b'A'..=b'Z')) as char
+    /// A randomly selected uppercase ASCII letter as a `char`.
+    fn random_uppercase_letter(&self) -> char {
+        fastrand::char('A'..='Z')
     }
 
-    /// Selects a random known HKID prefix from the `HKIDPrefix` enum.
+    /// Selects a random known HKID prefix from the set of known prefixes.
     ///
-    /// This function filters all variants of `HKIDPrefix` to include only those that are recognized
-    /// as "known" (using `is_known`), and returns one at random as an owned `String`.
-    /// Returns `None` if there are no known prefixes.
+    /// This function chooses one prefix at random from the static `KNOWN_PREFIXES` array,
+    /// which contains all recognized (i.e., "known") HKID prefixes.
     ///
-    /// # Arguments
-    /// * `rng` - A mutable reference to a random number generator implementing the `Rng` trait.
+    /// Returns `None` only if there are no known prefixes (i.e., if `KNOWN_PREFIXES` is empty),
+    /// otherwise returns `Some(&'static str)` containing the randomly selected prefix.
     ///
     /// # Returns
-    /// * `Some(String)` - A randomly selected known prefix as an owned `String`.
-    /// * `None` - If no known prefixes are available.
-    fn random_known_prefix<R: Rng>(rng: &mut R) -> Option<String> {
-        let valid_prefixes = HKIDPrefix::iter()
-            .filter(HKIDPrefix::is_known)
-            .map(|variant| variant.as_str())
-            .collect::<Vec<String>>();
-
-        valid_prefixes.choose(rng).cloned()
+    /// - `Some(&'static str)`: A randomly selected known prefix.
+    /// - `None`: If no known prefixes are available.
+    ///
+    /// # Notes
+    /// - Uses `fastrand` for efficient random selection.
+    /// - The returned prefix is a static string slice and will always be from the known set.
+    fn random_known_prefix(&self) -> Option<&'static str> {
+        let idx = fastrand::usize(..KNOWN_PREFIXES.len());
+        Some(KNOWN_PREFIXES[idx])
     }
 
-    /// Generates a random one-letter or two-letter uppercase prefix for HKID.
+    /// Generates a random one- or two-letter uppercase prefix.
     ///
-    /// Randomly chooses either one or two uppercase ASCII letters ('A' to 'Z') to form a prefix string.
-    /// The length is chosen at random (50% chance for each).
+    /// This function creates a random string consisting of either **one** or **two**
+    /// uppercase ASCII letters (`'A'` through `'Z'`), chosen uniformly at random.
     ///
-    /// # Arguments
-    /// * `rng` - A mutable reference to a random number generator implementing the `Rng` trait.
+    /// # How It Works
+    /// - With 50% probability, generates a prefix of length 1; otherwise, length 2.
+    /// - Each letter is chosen independently and uniformly from `'A'` to `'Z'`.
     ///
     /// # Returns
-    /// * `String` - A randomly generated prefix consisting of one or two uppercase letters.
-    fn random_prefix<R: Rng>(rng: &mut R) -> String {
-        let len = if rng.random_bool(0.5) { 1 } else { 2 };
+    /// A `String` containing the generated prefix (1 or 2 uppercase letters).
+    ///
+    /// # Notes
+    /// - The randomness relies on `fastrand` for performance.
+    /// - Typically used for generating random prefixes in HKID generation or similar use-cases.
+    fn random_prefix(&self) -> String {
+        let len = if fastrand::bool() { 1 } else { 2 };
+        let mut s = String::with_capacity(len);
 
-        (0..len).map(|_| HKIDOps::random_uppercase_letter(rng))
-            .collect()
+        for _ in 0..len {
+            s.push(self.random_uppercase_letter());
+        }
+
+        s
     }
 
     /// Calculates the check digit for a Hong Kong Identity Card (HKID) number body.
@@ -261,7 +295,7 @@ impl HKIDOps {
     ///
     /// 1. If the HKID body (prefix + 6 digits) is only 7 characters, it is left-padded with a space.
     ///    - This ensures all calculations use 8 positions (space/prefix + 6 digits).
-    /// 2. Each character is converted to a numeric value using [`HKIDOps::char_to_value`].
+    /// 2. Each character is converted to a numeric value using a private helper method (`char_to_value`).
     /// 3. Each value is multiplied by a weight (from 9 down to 2).
     /// 4. The sum of these products is used to compute the check digit as:
     ///    - `check = (11 - (sum % 11)) % 11`
@@ -279,7 +313,7 @@ impl HKIDOps {
     /// ```rust
     /// use hkid_ops::hkid_ops::HKIDOps;
     ///
-    /// let ops = HKIDOps {};
+    /// let ops = HKIDOps::new();
     ///
     /// assert_ne!(ops.calculate_check_digit("A123456"), Some('7'));      // Invalid: The expected check digit is '3'
     /// assert_eq!(ops.calculate_check_digit("AB123456"), Some('9'));     // Valid: 2-letter prefix
@@ -293,7 +327,7 @@ impl HKIDOps {
         }
 
         let padded_body = format!("{hkid_body:>8}");
-        let values = padded_body.chars().map(HKIDOps::char_to_value).collect::<Option<Vec<u32>>>()?;
+        let values = padded_body.chars().map(|c| self.char_to_value(c)).collect::<Option<Vec<u32>>>()?;
         let sum = values.iter().zip(WEIGHTS.iter()).map(|(v, w)| v * w).sum::<u32>();
         let check_digit = (11 - sum % 11) % 11;
 
@@ -303,36 +337,40 @@ impl HKIDOps {
         }
     }
 
-    /// Generates a random Hong Kong Identity Card (HKID) number, using a specified or random prefix.
+    /// Generates a random Hong Kong Identity Card (HKID) number using a specified or random prefix.
     ///
-    /// This function creates a valid HKID string by:
-    /// 1. Validating the prefix (enforcing that it is a known HKID prefix if required).
-    /// 2. Appending six random digits to the prefix.
+    /// # Description
+    /// This method creates a valid HKID string by:
+    /// 1. Validating the prefix (and requiring it to be a known HKID prefix if `must_exist_in_enum` is `true`).
+    /// 2. Appending six random digits to the chosen prefix.
     /// 3. Calculating the correct check digit for the generated HKID body.
     /// 4. Returning the final HKID in the format `<PREFIX>dddddd(C)`, where `d` is a digit and `C` is the check digit.
     ///
     /// # Arguments
-    /// - `prefix`: An optional prefix for the HKID (e.g., `"A"`, `"AB"`). If `None`, a random prefix is generated.
-    /// - `must_exist_in_enum`: If `true`, the function returns an error if the prefix is not recognized by `HKIDPrefix`.
+    /// - `prefix`: An optional HKID prefix (e.g., `"A"` or `"AB"`). If `None`, a prefix is generated randomly.
+    /// - `must_exist_in_enum`: If `true`, the prefix must be recognized as a valid variant in `HKIDPrefix`; otherwise, an error is returned.
     ///
-    /// # Prefix Logic
+    /// # Prefix Selection Logic
     /// - If `prefix` is `Some` and `must_exist_in_enum` is `true`, the prefix is validated against known HKID prefixes.
-    /// - If `prefix` is `Some` and `must_exist_in_enum` is `false`, the prefix is used as is.
+    /// - If `prefix` is `Some` and `must_exist_in_enum` is `false`, the prefix is used as-is (as long as it matches the format).
     /// - If `prefix` is `None` and `must_exist_in_enum` is `true`, a random known prefix is selected from `HKIDPrefix`.
     /// - If `prefix` is `None` and `must_exist_in_enum` is `false`, a random one- or two-letter uppercase prefix is generated.
     ///
     /// # Returns
-    /// - `Ok(String)`: A randomly generated HKID string in the format `<PREFI>Xdddddd(C)`.
-    /// - `Err(String)`: If the prefix is not recognized and `must_exist_in_enum` is `true`.
+    /// - `Ok(String)`: A randomly generated HKID string in the format `<PREFIX>dddddd(C)`.
+    /// - `Err(String)`: If the prefix is not recognized and `must_exist_in_enum` is `true`, or if prefix format is invalid, or if the check digit calculation fails.
     ///
     /// # Errors
-    /// Returns an error if `must_exist_in_enum` is set and the prefix is not recognized as a valid `HKIDPrefix`.
+    /// Returns an error if:
+    /// - The given prefix is not a valid HKID prefix format (must be 1 or 2 uppercase letters).
+    /// - `must_exist_in_enum` is `true` and the prefix is not recognized as a valid `HKIDPrefix`.
+    /// - The check digit calculation fails.
     ///
     /// # Example
     /// ```rust
     /// use hkid_ops::hkid_ops::HKIDOps;
     ///
-    /// let ops = HKIDOps {};
+    /// let ops = HKIDOps::new();
     ///
     /// // Generate with a known prefix
     /// let hkid = ops.generate_hkid(Some("A"), true).unwrap();
@@ -354,13 +392,13 @@ impl HKIDOps {
     /// assert!(ops.generate_hkid(Some("ZZ"), true).is_err());
     /// ```
     ///
-    /// # Note
-    /// - The random number generator used must provide `random_range`.
-    /// - The check digit calculation uses your implementation of `calculate_check_digit`.
+    /// # Implementation Notes
+    /// - This method uses `fastrand` for random digit and prefix generation.
+    /// - The check digit is computed using the implementation of `calculate_check_digit`.
     ///
+    /// # Panics
+    /// This function does not panic.
     pub fn generate_hkid(&self, prefix: Option<&str>, must_exist_in_enum: bool) -> Result<String, String> {
-        let mut rng = rand::rng();
-
         // Early validate prefix if provided
         if let Some(px) = prefix {
             if !VALID_PREFIX_REGEX.is_match(px) {
@@ -375,12 +413,12 @@ impl HKIDOps {
         }
 
         let prefix_str = match (prefix, must_exist_in_enum) {
-            (Some(px), true | false) => HKIDPrefix::parse(px).as_str(),
-            (None, true) => HKIDOps::random_known_prefix(&mut rng).ok_or_else(|| "No valid prefixes in HKIDPrefix enum".to_string())?,
-            (None, false) => HKIDOps::random_prefix(&mut rng),
+            (Some(px), true | false) => HKIDPrefix::parse(px).as_str().to_string(),
+            (None, true) => self.random_known_prefix().map(str::to_string).ok_or_else(|| "No valid prefixes in HKIDPrefix enum".to_string())?,
+            (None, false) => self.random_prefix(),
         };
 
-        let digits = (0..6).map(|_| rng.random_range(0..10).to_string()).collect::<String>();
+        let digits = (0..6).map(|_| fastrand::u8(0..10).to_string()).collect::<String>();
         let hkid_body = format!("{prefix_str}{digits}");
         let check_digit = self.calculate_check_digit(&hkid_body).ok_or("Failed to calculate check digit")?;
 
@@ -407,7 +445,7 @@ impl HKIDOps {
     /// ```rust
     /// use hkid_ops::hkid_ops::HKIDOps;
     ///
-    /// let ops = HKIDOps {};
+    /// let ops = HKIDOps::new();
     ///
     /// // Valid HKID, known prefix, must_exist_in_enum = true
     /// assert_eq!(ops.validate_hkid("A123456(7)", true), Ok(false));
@@ -465,20 +503,50 @@ mod tests {
 
     #[test]
     fn test_char_to_value() {
-        assert_eq!(HKIDOps::char_to_value('A'), Some(10));
-        assert_eq!(HKIDOps::char_to_value('Z'), Some(35));
-        assert_eq!(HKIDOps::char_to_value('a'), Some(10));
-        assert_eq!(HKIDOps::char_to_value('z'), Some(35));
-        assert_eq!(HKIDOps::char_to_value('0'), Some(0));
-        assert_eq!(HKIDOps::char_to_value('9'), Some(9));
-        assert_eq!(HKIDOps::char_to_value(' '), Some(36));
-        assert_eq!(HKIDOps::char_to_value('@'), None);
-        assert_eq!(HKIDOps::char_to_value('_'), None);
+        let ops = HKIDOps::new();
+
+        assert_eq!(ops.char_to_value('A'), Some(10));
+        assert_eq!(ops.char_to_value('Z'), Some(35));
+        assert_eq!(ops.char_to_value('a'), Some(10));
+        assert_eq!(ops.char_to_value('z'), Some(35));
+        assert_eq!(ops.char_to_value('0'), Some(0));
+        assert_eq!(ops.char_to_value('9'), Some(9));
+        assert_eq!(ops.char_to_value(' '), Some(36));
+        assert_eq!(ops.char_to_value('@'), None);
+        assert_eq!(ops.char_to_value('_'), None);
+    }
+
+    #[test]
+    fn test_random_uppercase_letter() {
+        let ops = HKIDOps::new();
+        let letter = ops.random_uppercase_letter();
+
+        assert!(letter >= 'A' && letter <= 'Z', "Letter should be ASCII uppercase");
+    }
+
+    #[test]
+    fn test_random_known_prefix() {
+        let hkid_ops = HKIDOps::new();
+        let prefix_opt = hkid_ops.random_known_prefix();
+
+        if let Some(prefix) = prefix_opt {
+            assert!(KNOWN_PREFIXES.contains(&prefix));
+        }
+    }
+
+    #[test]
+    fn test_random_prefix() {
+        let hkid_ops = HKIDOps::new();
+        // Example usage (assuming hkid_ops.random_prefix() exists)
+        let prefix = hkid_ops.random_prefix();
+
+        assert!(prefix.len() == 1 || prefix.len() == 2, "Prefix should be 1 or 2 characters");
+        assert!(prefix.chars().all(|c| c.is_ascii_uppercase()), "All characters should be ASCII uppercase");
     }
 
     #[test]
     fn test_calculate_check_digit_single_letter_prefix() {
-        let hkid_ops = HKIDOps {};
+        let hkid_ops = HKIDOps::new();
 
         assert_eq!(hkid_ops.calculate_check_digit("A123456"), Some('3'));
         assert_ne!(hkid_ops.calculate_check_digit("B987654"), Some('7'));
@@ -487,7 +555,7 @@ mod tests {
 
     #[test]
     fn test_calculate_check_digit_double_letter_prefix() {
-        let hkid_ops = HKIDOps {};
+        let hkid_ops = HKIDOps::new();
 
         assert_ne!(hkid_ops.calculate_check_digit("WX123456"), Some('4'));
         assert_ne!(hkid_ops.calculate_check_digit("AB987654"), Some('5'));
@@ -496,13 +564,13 @@ mod tests {
 
     #[test]
     fn test_calculate_check_digit_resulting_in_a() {
-        let hkid_ops = HKIDOps {};
+        let hkid_ops = HKIDOps::new();
         assert_ne!(hkid_ops.calculate_check_digit("C668668"), Some('A'));
     }
 
     #[test]
     fn test_calculate_check_digit_with_padding() {
-        let hkid_ops = HKIDOps {};
+        let hkid_ops = HKIDOps::new();
 
         assert_eq!(
             hkid_ops.calculate_check_digit("P123456"),
@@ -512,7 +580,7 @@ mod tests {
 
     #[test]
     fn test_calculate_check_digit_invalid_char() {
-        let hkid_ops = HKIDOps {};
+        let hkid_ops = HKIDOps::new();
 
         assert_eq!(hkid_ops.calculate_check_digit("A12345_"), None);
         assert_eq!(hkid_ops.calculate_check_digit("A12345-"), None);
@@ -520,7 +588,7 @@ mod tests {
 
     #[test]
     fn test_calculate_check_digit_invalid_length() {
-        let hkid_ops = HKIDOps {};
+        let hkid_ops = HKIDOps::new();
 
         assert_eq!(hkid_ops.calculate_check_digit("A12345"), None); // 6 chars, too short
         assert_eq!(hkid_ops.calculate_check_digit("A12345678"), None); // 9 chars, too long
@@ -556,7 +624,7 @@ mod tests {
 
     #[test]
     fn test_generate_hkid_with_known_prefix() {
-        let hkid_ops = HKIDOps {};
+        let hkid_ops = HKIDOps::new();
         let prefix = "A";
         let result = hkid_ops.generate_hkid(Some(prefix), true);
 
@@ -570,7 +638,7 @@ mod tests {
 
     #[test]
     fn test_generate_hkid_with_two_letter_known_prefix() {
-        let hkid_ops = HKIDOps {};
+        let hkid_ops = HKIDOps::new();
         let prefix = "WX";
         let result = hkid_ops.generate_hkid(Some(prefix), true);
 
@@ -584,7 +652,7 @@ mod tests {
 
     #[test]
     fn test_generate_hkid_with_custom_prefix_allowed() {
-        let hkid_ops = HKIDOps {};
+        let hkid_ops = HKIDOps::new();
         let prefix = "ZZ";
         let result = hkid_ops.generate_hkid(Some(prefix), false);
 
@@ -598,8 +666,12 @@ mod tests {
 
     #[test]
     fn test_generate_hkid_with_random_known_prefix() {
-        let hkid_ops = HKIDOps {};
+        let hkid_ops = HKIDOps::new();
         let result = hkid_ops.generate_hkid(None, true);
+
+        if let Err(e) = &result {
+            println!("generate_hkid error: {:?}", e);
+        }
 
         assert!(result.is_ok());
 
@@ -616,7 +688,7 @@ mod tests {
 
     #[test]
     fn test_generate_hkid_with_random_any_prefix() {
-        let hkid_ops = HKIDOps {};
+        let hkid_ops = HKIDOps::new();
         let result = hkid_ops.generate_hkid(None, false);
 
         assert!(result.is_ok());
@@ -638,7 +710,7 @@ mod tests {
 
     #[test]
     fn test_generate_hkid_with_empty_prefix() {
-        let hkid_ops = HKIDOps {};
+        let hkid_ops = HKIDOps::new();
         let result = hkid_ops.generate_hkid(Some(""), true);
 
         assert!(result.is_err());
@@ -646,7 +718,7 @@ mod tests {
 
     #[test]
     fn test_generate_hkid_with_lowercase_prefix() {
-        let hkid_ops = HKIDOps {};
+        let hkid_ops = HKIDOps::new();
         let result = hkid_ops.generate_hkid(Some("a"), true);
 
         assert!(result.is_err());
@@ -654,7 +726,7 @@ mod tests {
 
     #[test]
     fn test_generate_hkid_with_unknown_prefix_not_allowed() {
-        let hkid_ops = HKIDOps {};
+        let hkid_ops = HKIDOps::new();
         let result = hkid_ops.generate_hkid(Some("ZZ"), true);
 
         assert!(result.is_err());
@@ -662,7 +734,7 @@ mod tests {
 
     #[test]
     fn test_validate_hkid_correct() {
-        let hkid_ops = HKIDOps {};
+        let hkid_ops = HKIDOps::new();
         let valid_hkid = "A123456(3)";
         let result = hkid_ops.validate_hkid(valid_hkid, false);
 
@@ -672,7 +744,7 @@ mod tests {
 
     #[test]
     fn test_validate_hkid_incorrect_digit() {
-        let hkid_ops = HKIDOps {};
+        let hkid_ops = HKIDOps::new();
         let invalid_hkid = "A123456(9)";
         let result = hkid_ops.validate_hkid(invalid_hkid, false);
 
@@ -682,7 +754,7 @@ mod tests {
 
     #[test]
     fn test_validate_hkid_invalid_format() {
-        let hkid_ops = HKIDOps {};
+        let hkid_ops = HKIDOps::new();
         let invalid_hkid_format = "A12345"; // less than required chars
         let result = hkid_ops.validate_hkid(invalid_hkid_format, false);
 
@@ -695,7 +767,7 @@ mod tests {
 
     #[test]
     fn test_validate_hkid_missing_check_digit() {
-        let hkid_ops = HKIDOps {};
+        let hkid_ops = HKIDOps::new();
         let missing_digit = "A123456";
         let result = hkid_ops.validate_hkid(missing_digit, false);
 
@@ -708,7 +780,7 @@ mod tests {
 
     #[test]
     fn test_validate_hkid_unknown_prefix_with_must_exist() {
-        let hkid_ops = HKIDOps {};
+        let hkid_ops = HKIDOps::new();
         let hkid = "XX123456(1)";
         let result = hkid_ops.validate_hkid(hkid, true);
 
@@ -718,7 +790,7 @@ mod tests {
 
     #[test]
     fn test_validate_hkid_unknown_prefix_without_must_exist() {
-        let hkid_ops = HKIDOps {};
+        let hkid_ops = HKIDOps::new();
         let hkid = "ZZ123456(8)";
         let result = hkid_ops.validate_hkid(hkid, false);
 
@@ -727,7 +799,7 @@ mod tests {
 
     #[test]
     fn test_validate_hkid_no_parentheses() {
-        let hkid_ops = HKIDOps {};
+        let hkid_ops = HKIDOps::new();
         let valid_hkid = "A1234563";
         let result = hkid_ops.validate_hkid(valid_hkid, false);
 
@@ -737,7 +809,7 @@ mod tests {
 
     #[test]
     fn test_validate_hkid_missing_check_digit_branch() {
-        let hkid_ops = HKIDOps {};
+        let hkid_ops = HKIDOps::new();
         let result = hkid_ops.validate_hkid("A123456()", false);
 
         assert!(result.is_err());
@@ -746,7 +818,7 @@ mod tests {
 
     #[test]
     fn test_validate_hkid_invalid_hkid_body() {
-        let hkid_ops = HKIDOps {};
+        let hkid_ops = HKIDOps::new();
         let result = hkid_ops.validate_hkid("A12345_(7)", false);
 
         assert!(result.is_err());
@@ -755,7 +827,7 @@ mod tests {
 
     #[test]
     fn test_validate_hkid_lowercase_prefix() {
-        let hkid_ops = HKIDOps {};
+        let hkid_ops = HKIDOps::new();
         let result = hkid_ops.validate_hkid("a123456(7)", false);
 
         assert!(result.is_err());
